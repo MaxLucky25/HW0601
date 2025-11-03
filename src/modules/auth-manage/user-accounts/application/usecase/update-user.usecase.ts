@@ -17,10 +17,10 @@ export class UpdateUserUseCase
   constructor(private usersRepository: UsersRepository) {}
 
   async execute(command: UpdateUserCommand): Promise<void> {
-    await this.usersRepository.findOrNotFoundFail({
+    const user = await this.usersRepository.findOrNotFoundFail({
       id: command.userId.id,
     });
 
-    await this.usersRepository.updateUser(command.userId.id, command.dto);
+    await this.usersRepository.updateUser(user, command.dto);
   }
 }

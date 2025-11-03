@@ -41,7 +41,7 @@ export class AuthService {
 
     const isPasswordValid = await this.bcryptService.compare({
       password: dto.password,
-      hash: user.password_hash,
+      hash: user.passwordHash,
     });
 
     if (!isPasswordValid) {

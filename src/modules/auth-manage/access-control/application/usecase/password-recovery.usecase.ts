@@ -4,8 +4,6 @@ import { AuthService } from '../auth.service';
 import { EmailService } from '../helping-application/email.service';
 import { UsersRepository } from '../../../user-accounts/infrastructure/user.repository';
 import { PasswordRecoveryRepository } from '../../../user-accounts/infrastructure/password-recovery.repository';
-import { add } from 'date-fns';
-import { randomUUID } from 'crypto';
 
 export class PasswordRecoveryCommand {
   constructor(public readonly dto: PasswordRecoveryInputDto) {}
@@ -31,18 +29,18 @@ export class PasswordRecoveryUseCase
         'PASSWORD_RECOVERY_EXPIRATION',
       );
 
-      const recoveryCode = randomUUID();
-      const expirationDate = add(new Date(), { minutes: expiration });
+      // Создаем или регенерируем recovery код через умную сущность
+      const passwordRecovery =
+        await this.passwordRecoveryRepository.createOrRegenerate(
+          user.id,
+          expiration,
+        );
 
-      // Создаем или обновляем recovery код
-      await this.passwordRecoveryRepository.updatePasswordRecovery({
-        userId: user.id,
-        recoveryCode,
-        expirationDate,
-      });
-
-      // Отправляем email
-      await this.emailService.sendRecoveryEmail(user.email, recoveryCode);
+      // Отправляем email с новым кодом
+      await this.emailService.sendRecoveryEmail(
+        user.email,
+        passwordRecovery.recoveryCode,
+      );
     }
     return;
   }

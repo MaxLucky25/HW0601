@@ -1,27 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../../../../core/database/database.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull } from 'typeorm';
+import { User } from '../../domain/entities/user.entity';
 import { UserViewDto } from '../../api/view-dto/users.view-dto';
 import { GetUsersQueryParams } from '../../api/input-dto/get-users-query-params.input-dto';
 import { PaginatedViewDto } from '../../../../../core/dto/base.paginated.view-dto';
 import { DomainException } from '../../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../../core/exceptions/domain-exception-codes';
 import { FindByIdDto } from '../dto/repoDto';
-import { RawUserRow } from '../../../../../core/database/types/sql.types';
-import { UsersSortBy } from '../../api/input-dto/user-sort-by';
 
 @Injectable()
 export class UsersQueryRepository {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    @InjectRepository(User)
+    private readonly repository: Repository<User>,
+  ) {}
 
   async getByIdOrNotFoundFail(dto: FindByIdDto): Promise<UserViewDto> {
-    const query = `
-      SELECT * FROM users 
-      WHERE id = $1 AND deleted_at IS NULL
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [
-      dto.id,
-    ]);
-    const user = result.rows[0];
+    const user = await this.repository.findOne({
+      where: { id: dto.id, deletedAt: IsNull() },
+    });
 
     if (!user) {
       throw new DomainException({
@@ -37,60 +35,46 @@ export class UsersQueryRepository {
   async getAll(
     query: GetUsersQueryParams,
   ): Promise<PaginatedViewDto<UserViewDto[]>> {
-    const searchLoginTerm = query.searchLoginTerm || null;
-    const searchEmailTerm = query.searchEmailTerm || null;
+    const searchLoginTerm = query.searchLoginTerm;
+    const searchEmailTerm = query.searchEmailTerm;
 
-    // Маппинг полей для PostgreSQL
-    const orderBy =
-      query.sortBy === UsersSortBy.CreatedAt ? 'created_at' : query.sortBy;
-    const direction = query.sortDirection.toUpperCase();
+    // Создаем QueryBuilder
+    const queryBuilder = this.repository.createQueryBuilder('user');
 
-    const limit = query.pageSize;
-    const offset = query.calculateSkip();
-
-    // Строим WHERE условия динамически
-    let whereConditions = 'WHERE deleted_at IS NULL';
-    const queryParams: (string | number)[] = [];
-    let paramIndex = 1;
+    // Базовое условие: только не удаленные пользователи
+    queryBuilder.where({ deletedAt: IsNull() });
 
     // Если есть оба поисковых термина, используем OR
     if (searchLoginTerm && searchEmailTerm) {
-      whereConditions += ` AND (login ILIKE $${paramIndex} OR email ILIKE $${paramIndex + 1})`;
-      queryParams.push(`%${searchLoginTerm}%`);
-      queryParams.push(`%${searchEmailTerm}%`);
-      paramIndex += 2;
+      queryBuilder.andWhere(
+        '(user.login ILIKE :loginTerm OR user.email ILIKE :emailTerm)',
+        {
+          loginTerm: `%${searchLoginTerm}%`,
+          emailTerm: `%${searchEmailTerm}%`,
+        },
+      );
     } else if (searchLoginTerm) {
-      whereConditions += ` AND login ILIKE $${paramIndex}`;
-      queryParams.push(`%${searchLoginTerm}%`);
-      paramIndex++;
+      queryBuilder.andWhere('user.login ILIKE :loginTerm', {
+        loginTerm: `%${searchLoginTerm}%`,
+      });
     } else if (searchEmailTerm) {
-      whereConditions += ` AND email ILIKE $${paramIndex}`;
-      queryParams.push(`%${searchEmailTerm}%`);
-      paramIndex++;
+      queryBuilder.andWhere('user.email ILIKE :emailTerm', {
+        emailTerm: `%${searchEmailTerm}%`,
+      });
     }
 
-    const usersQuery = `
-      SELECT * FROM users 
-      ${whereConditions}
-      ORDER BY ${orderBy} ${direction}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
+    // Применяем сортировку (camelCase уже в UsersSortBy)
+    const orderBy = query.sortBy;
+    const direction = query.sortDirection.toUpperCase() as 'ASC' | 'DESC';
+    queryBuilder.orderBy(`user.${orderBy}`, direction);
 
-    const countQuery = `
-      SELECT COUNT(*) FROM users 
-      ${whereConditions}
-    `;
+    // Применяем пагинацию
+    const limit = query.pageSize;
+    const offset = query.calculateSkip();
+    queryBuilder.limit(limit).offset(offset);
 
-    // Добавляем limit и offset к параметрам для usersQuery
-    const usersQueryParams = [...queryParams, limit, offset];
-
-    const [usersResult, countResult] = await Promise.all([
-      this.databaseService.query<RawUserRow>(usersQuery, usersQueryParams),
-      this.databaseService.query<{ count: string }>(countQuery, queryParams),
-    ]);
-
-    const users = usersResult.rows;
-    const totalCount = parseInt(countResult.rows[0].count);
+    // Получаем данные и общее количество
+    const [users, totalCount] = await queryBuilder.getManyAndCount();
 
     const items = users.map((user) => UserViewDto.mapToView(user));
 

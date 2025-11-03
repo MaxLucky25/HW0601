@@ -26,7 +26,8 @@ export class NewPasswordUseCase
         recoveryCode: command.dto.recoveryCode,
       });
 
-    if (!passwordRecovery) {
+    // Проверяем, что passwordRecovery существует и валиден
+    if (!passwordRecovery || !passwordRecovery.isValid()) {
       throw new DomainException({
         code: DomainExceptionCode.ConfirmationCodeInvalid,
         message: 'Recovery code is not valid',
@@ -34,21 +35,16 @@ export class NewPasswordUseCase
       });
     }
 
-    // Проверяем, что код не истек
-    if (passwordRecovery.expiration_date <= new Date()) {
-      throw new DomainException({
-        code: DomainExceptionCode.ConfirmationCodeInvalid,
-        message: 'Recovery code is not valid',
-        field: 'recoveryCode',
-      });
-    }
+    // Получаем пользователя для обновления пароля
+    const user = await this.usersRepository.findById({
+      id: passwordRecovery.userId,
+    });
 
-    // Проверяем, что код уже подтвержден
-    if (passwordRecovery.is_confirmed) {
+    if (!user) {
       throw new DomainException({
-        code: DomainExceptionCode.ConfirmationCodeInvalid,
-        message: 'Recovery code is not valid',
-        field: 'recoveryCode',
+        code: DomainExceptionCode.NotFound,
+        message: 'User not found!',
+        field: 'User',
       });
     }
 
@@ -56,16 +52,13 @@ export class NewPasswordUseCase
       password: command.dto.newPassword,
     });
 
-    // Обновляем пароль через репозиторий
-    await this.usersRepository.updateUserPassword(
-      passwordRecovery.user_id,
-      newPasswordHash,
-    );
+    // Обновляем пароль через умную сущность
+    await this.usersRepository.updateUserPassword(user, newPasswordHash);
 
-    // Подтверждаем recovery код
-    await this.passwordRecoveryRepository.confirmPasswordRecovery({
-      userId: passwordRecovery.user_id,
-    });
+    // Подтверждаем recovery код через умную сущность
+    await this.passwordRecoveryRepository.confirmPasswordRecovery(
+      passwordRecovery,
+    );
 
     return;
   }

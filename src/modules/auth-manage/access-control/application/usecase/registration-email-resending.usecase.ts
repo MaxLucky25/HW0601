@@ -6,8 +6,6 @@ import { EmailService } from '../helping-application/email.service';
 import { DomainException } from '../../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../../core/exceptions/domain-exception-codes';
 import { AuthService } from '../auth.service';
-import { add } from 'date-fns';
-import { randomUUID } from 'crypto';
 
 export class RegistrationEmailResendingCommand {
   constructor(public readonly dto: RegistrationEmailResendingInputDto) {}
@@ -29,7 +27,7 @@ export class RegistrationEmailResendingUseCase
       email: command.dto.email,
     });
 
-    if (!user || user.is_email_confirmed) {
+    if (!user || user.hasEmailConfirmed()) {
       throw new DomainException({
         code: DomainExceptionCode.AlreadyConfirmed,
         message: 'Email already confirmed',
@@ -41,18 +39,18 @@ export class RegistrationEmailResendingUseCase
       'EMAIL_CONFIRMATION_EXPIRATION',
     );
 
-    const confirmationCode = randomUUID();
-    const expirationDate = add(new Date(), { minutes: expiration });
+    // Создаем или регенерируем код подтверждения через умную сущность
+    const emailConfirmation =
+      await this.emailConfirmationRepository.createOrRegenerate(
+        user.id,
+        expiration,
+      );
 
-    // Обновляем код подтверждения
-    await this.emailConfirmationRepository.updateEmailConfirmation({
-      userId: user.id,
-      confirmationCode,
-      expirationDate,
-    });
-
-    // Отправляем email
-    await this.emailService.sendConfirmationEmail(user.email, confirmationCode);
+    // Отправляем email с новым кодом
+    await this.emailService.sendConfirmationEmail(
+      user.email,
+      emailConfirmation.confirmationCode,
+    );
 
     return;
   }

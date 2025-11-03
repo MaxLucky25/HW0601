@@ -8,8 +8,6 @@ import { Extension } from '../../../../../core/exceptions/domain-exceptions';
 import { EmailService } from '../helping-application/email.service';
 import { BcryptService } from '../helping-application/bcrypt.service';
 import { ConfigService } from '@nestjs/config';
-import { add } from 'date-fns';
-import { randomUUID } from 'crypto';
 
 export class RegistrationUserCommand {
   constructor(public readonly dto: CreateUserInputDto) {}
@@ -66,7 +64,7 @@ export class RegistrationUserUseCase
       passwordHash,
     });
 
-    // Создаем email confirmation
+    // Создаем email confirmation с автогенерацией кода
     const expirationMinutes = this.configService.get<number>(
       'EMAIL_CONFIRMATION_EXPIRATION',
     );
@@ -79,17 +77,16 @@ export class RegistrationUserUseCase
       });
     }
 
-    const confirmationCode = randomUUID();
-    const expirationDate = add(new Date(), { minutes: expirationMinutes });
+    const emailConfirmation =
+      await this.emailConfirmationRepository.createEmailConfirmation(
+        user.id,
+        expirationMinutes,
+      );
 
-    await this.emailConfirmationRepository.createEmailConfirmation({
-      userId: user.id,
-      confirmationCode,
-      expirationDate,
-      isConfirmed: false,
-    });
-
-    // Отправляем email
-    await this.emailService.sendConfirmationEmail(user.email, confirmationCode);
+    // Отправляем email с сгенерированным кодом
+    await this.emailService.sendConfirmationEmail(
+      user.email,
+      emailConfirmation.confirmationCode,
+    );
   }
 }

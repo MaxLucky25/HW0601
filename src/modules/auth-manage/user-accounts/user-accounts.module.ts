@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersController } from './api/user.controller';
 import { UsersQueryRepository } from './infrastructure/query/users.query-repository';
 import { UsersRepository } from './infrastructure/user.repository';
+import { User } from './domain/entities/user.entity';
+import { EmailConfirmation } from './domain/entities/email-confirmation.entity';
+import { PasswordRecovery } from './domain/entities/password-recovery.entity';
 import { EmailConfirmationRepository } from './infrastructure/email-confirmation.repository';
 import { PasswordRecoveryRepository } from './infrastructure/password-recovery.repository';
 import { HelpingApplicationModule } from '../access-control/application/helping-application/helping-application.module';
@@ -19,8 +23,13 @@ const CommandHandler = [
   UpdateUserUseCase,
   DeleteUserUseCase,
 ];
+
 @Module({
-  imports: [CqrsModule, HelpingApplicationModule],
+  imports: [
+    CqrsModule,
+    HelpingApplicationModule,
+    TypeOrmModule.forFeature([User, EmailConfirmation, PasswordRecovery]),
+  ],
   controllers: [UsersController],
   providers: [
     ...CommandHandler,

@@ -8,18 +8,6 @@ export interface TruncateResult {
   rowCount: number;
 }
 
-// Типы для raw SQL данных (snake_case из PostgresSQL)
-export interface RawUserRow {
-  id: string;
-  login: string;
-  email: string;
-  password_hash: string;
-  is_email_confirmed: boolean;
-  created_at: Date;
-  updated_at: Date;
-  deleted_at: Date | null;
-}
-
 export interface RawSessionRow {
   id: string;
   token: string;
@@ -31,24 +19,6 @@ export interface RawSessionRow {
   last_active_date: Date;
   expires_at: Date;
   is_revoked: boolean;
-}
-
-export interface RawEmailConfirmationRow {
-  user_id: string;
-  confirmation_code: string;
-  expiration_date: Date;
-  is_confirmed: boolean;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface RawPasswordRecoveryRow {
-  user_id: string;
-  recovery_code: string;
-  expiration_date: Date;
-  is_confirmed: boolean;
-  created_at: Date;
-  updated_at: Date;
 }
 
 // Blog types

@@ -60,8 +60,9 @@ export class CreateUserUseCase
     });
 
     // Для админского создания сразу помечаем email как подтвержденный
-    await this.usersRepository.updateUserEmailConfirmed(user.id, true);
+    const confirmedUser =
+      await this.usersRepository.updateUserEmailConfirmed(user);
 
-    return UserViewDto.mapToView(user);
+    return UserViewDto.mapToView(confirmedUser);
   }
 }

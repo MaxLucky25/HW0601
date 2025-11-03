@@ -24,26 +24,8 @@ export class RegistrationConfirmationUserUseCase
         confirmationCode: command.dto.code,
       });
 
-    // Проверяем, что emailConfirmation существует
-    if (!emailConfirmation) {
-      throw new DomainException({
-        code: DomainExceptionCode.ConfirmationCodeInvalid,
-        message: 'Confirmation code is not valid',
-        field: 'code',
-      });
-    }
-
-    // Проверяем, что код уже подтвержден
-    if (emailConfirmation.is_confirmed) {
-      throw new DomainException({
-        code: DomainExceptionCode.ConfirmationCodeInvalid,
-        message: 'Confirmation code is not valid',
-        field: 'code',
-      });
-    }
-
-    // Проверяем, что код не истек
-    if (emailConfirmation.expiration_date <= new Date()) {
+    // Проверяем, что emailConfirmation существует и валиден
+    if (!emailConfirmation || !emailConfirmation.isValid()) {
       throw new DomainException({
         code: DomainExceptionCode.ConfirmationCodeInvalid,
         message: 'Confirmation code is not valid',
@@ -53,7 +35,7 @@ export class RegistrationConfirmationUserUseCase
 
     // Получаем пользователя для проверки статуса
     const user = await this.usersRepository.findById({
-      id: emailConfirmation.user_id,
+      id: emailConfirmation.userId,
     });
     if (!user) {
       throw new DomainException({
@@ -64,7 +46,7 @@ export class RegistrationConfirmationUserUseCase
     }
 
     // Проверяем, что пользователь уже подтвержден
-    if (user.is_email_confirmed) {
+    if (user.hasEmailConfirmed()) {
       throw new DomainException({
         code: DomainExceptionCode.ConfirmationCodeInvalid,
         message: 'Confirmation code is not valid',
@@ -73,12 +55,12 @@ export class RegistrationConfirmationUserUseCase
     }
 
     // Обновляем статус подтверждения пользователя
-    await this.usersRepository.updateUserEmailConfirmed(user.id, true);
+    await this.usersRepository.updateUserEmailConfirmed(user);
 
-    // Подтверждаем код
-    await this.emailConfirmationRepository.confirmEmailConfirmation({
-      userId: user.id,
-    });
+    // Подтверждаем код через умную сущность
+    await this.emailConfirmationRepository.confirmEmailConfirmation(
+      emailConfirmation,
+    );
 
     return;
   }

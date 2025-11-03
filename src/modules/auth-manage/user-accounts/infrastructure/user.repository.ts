@@ -1,33 +1,31 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../../../core/database/database.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull } from 'typeorm';
+import { User } from '../domain/entities/user.entity';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { CreateUserDomainDto } from '../api/input-dto/create-user.domain.dto';
+import { CreateUserDomainDto } from '../domain/dto/create-user.domain.dto';
 import { UpdateUserInputDto } from '../api/input-dto/update-user.input.dto';
 import {
   FindByEmailDto,
   FindByIdDto,
   FindByLoginOrEmailDto,
 } from './dto/repoDto';
-import { RawUserRow } from '../../../../core/database/types/sql.types';
-import { randomUUID } from 'crypto';
 
 @Injectable()
 export class UsersRepository {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    @InjectRepository(User)
+    private readonly repository: Repository<User>,
+  ) {}
 
-  async findById(dto: FindByIdDto): Promise<RawUserRow | null> {
-    const query = `
-      SELECT * FROM users 
-      WHERE id = $1 AND deleted_at IS NULL
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [
-      dto.id,
-    ]);
-    return result.rows[0] || null;
+  async findById(dto: FindByIdDto): Promise<User | null> {
+    return await this.repository.findOne({
+      where: { id: dto.id, deletedAt: IsNull() },
+    });
   }
 
-  async findOrNotFoundFail(dto: FindByIdDto): Promise<RawUserRow> {
+  async findOrNotFoundFail(dto: FindByIdDto): Promise<User> {
     const user = await this.findById(dto);
 
     if (!user) {
@@ -41,109 +39,45 @@ export class UsersRepository {
     return user;
   }
 
-  async findByEmail(dto: FindByEmailDto): Promise<RawUserRow | null> {
-    const query = `
-      SELECT * FROM users
-      WHERE email = $1 AND deleted_at IS NULL
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [
-      dto.email,
-    ]);
-    return result.rows[0] || null;
+  async findByEmail(dto: FindByEmailDto): Promise<User | null> {
+    return await this.repository.findOne({
+      where: { email: dto.email, deletedAt: IsNull() },
+    });
   }
 
-  async findByLoginOrEmail(
-    dto: FindByLoginOrEmailDto,
-  ): Promise<RawUserRow | null> {
-    const query = `
-      SELECT * FROM users
-      WHERE (login = $1 OR email = $1) AND deleted_at IS NULL
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [
-      dto.loginOrEmail,
-    ]);
-    return result.rows[0] || null;
+  async findByLoginOrEmail(dto: FindByLoginOrEmailDto): Promise<User | null> {
+    return await this.repository.findOne({
+      where: [
+        { login: dto.loginOrEmail, deletedAt: IsNull() },
+        { email: dto.loginOrEmail, deletedAt: IsNull() },
+      ],
+    });
   }
 
-  async createUser(dto: CreateUserDomainDto): Promise<RawUserRow> {
-    const userId = randomUUID();
-    const query = `
-      INSERT INTO users (
-        id, login, password_hash, email, is_email_confirmed,
-        created_at, updated_at, deleted_at
-      ) VALUES (
-        $1, $2, $3, $4, $5, NOW(), NOW(), $6
-      )
-      RETURNING *
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [
-      userId,
-      dto.login,
-      dto.passwordHash,
-      dto.email,
-      false, // is_email_confirmed
-      null, // deleted_at
-    ]);
-    return result.rows[0];
+  async createUser(dto: CreateUserDomainDto): Promise<User> {
+    // Используем статический метод Entity для создания
+    const user = User.create(dto);
+
+    return await this.repository.save(user);
   }
 
-  async updateUser(id: string, dto: UpdateUserInputDto): Promise<RawUserRow> {
-    const query = `
-      UPDATE users 
-      SET email = $2, login = $3, updated_at = NOW()
-      WHERE id = $1 AND deleted_at IS NULL
-      RETURNING *
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [
-      id,
-      dto.email,
-      dto.login,
-    ]);
-    return result.rows[0];
+  async updateUser(entity: User, dto: UpdateUserInputDto): Promise<User> {
+    entity.updateLoginAndEmail(dto.login, dto.email);
+    return await this.repository.save(entity);
   }
 
-  async deleteUser(id: string): Promise<RawUserRow> {
-    const query = `
-      UPDATE users 
-      SET deleted_at = NOW(), updated_at = NOW()
-      WHERE id = $1 AND deleted_at IS NULL
-      RETURNING *
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [id]);
-    return result.rows[0];
+  async deleteUser(entity: User): Promise<User> {
+    entity.softDelete();
+    return await this.repository.save(entity);
   }
 
-  async updateUserPassword(
-    id: string,
-    passwordHash: string,
-  ): Promise<RawUserRow> {
-    const query = `
-      UPDATE users 
-      SET password_hash = $2, updated_at = NOW()
-      WHERE id = $1 AND deleted_at IS NULL
-      RETURNING *
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [
-      id,
-      passwordHash,
-    ]);
-    return result.rows[0];
+  async updateUserPassword(entity: User, passwordHash: string): Promise<User> {
+    entity.updatePassword(passwordHash);
+    return await this.repository.save(entity);
   }
 
-  async updateUserEmailConfirmed(
-    id: string,
-    isEmailConfirmed: boolean,
-  ): Promise<RawUserRow> {
-    const query = `
-      UPDATE users 
-      SET is_email_confirmed = $2, updated_at = NOW()
-      WHERE id = $1 AND deleted_at IS NULL
-      RETURNING *
-    `;
-    const result = await this.databaseService.query<RawUserRow>(query, [
-      id,
-      isEmailConfirmed,
-    ]);
-    return result.rows[0];
+  async updateUserEmailConfirmed(entity: User): Promise<User> {
+    entity.confirmEmail();
+    return await this.repository.save(entity);
   }
 }
