@@ -29,10 +29,8 @@ import { OptionalJwtAuthGuard } from '../../../auth-manage/guards/bearer/optiona
 import { ExtractUserForJwtGuard } from '../../../auth-manage/guards/decorators/param/extract-user-for-jwt-guard.decorator';
 import { ExtractUserIdForJwtOptionalGuard } from '../../../auth-manage/guards/decorators/param/extract-user-id-for-jwt-optional-guard.decorator';
 import { UserContextDto } from '../../../auth-manage/guards/dto/user-context.dto';
-import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('comments')
-@SkipThrottle()
 @Controller('comments')
 export class CommentsController {
   constructor(

@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
 import { RefreshTokenAuthGuard } from '../../guards/bearer/refresh-token-auth.guard';
 import { ExtractUserForRefreshTokenGuard } from '../../guards/decorators/param/extract-user-for-refresh-token-guard.decorator';
 import { TokenContextDto } from '../../guards/dto/token-context.dto';
@@ -20,7 +19,6 @@ import { DeleteAllDevicesCommand } from '../application/usecase/delete-all-devic
 
 @ApiTags('security')
 @UseGuards(RefreshTokenAuthGuard)
-@SkipThrottle()
 @Controller('security')
 export class SecurityController {
   constructor(

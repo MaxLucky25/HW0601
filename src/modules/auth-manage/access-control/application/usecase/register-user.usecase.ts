@@ -1,7 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateUserInputDto } from '../../../user-accounts/api/input-dto/users.input-dto';
 import { UsersRepository } from '../../../user-accounts/infrastructure/user.repository';
-import { EmailConfirmationRepository } from '../../../user-accounts/infrastructure/email-confirmation.repository';
 import { DomainException } from '../../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../../core/exceptions/domain-exception-codes';
 import { Extension } from '../../../../../core/exceptions/domain-exceptions';
@@ -19,7 +18,6 @@ export class RegistrationUserUseCase
 {
   constructor(
     private usersRepository: UsersRepository,
-    private emailConfirmationRepository: EmailConfirmationRepository,
     private emailService: EmailService,
     private bcryptService: BcryptService,
     private configService: ConfigService,
@@ -57,14 +55,7 @@ export class RegistrationUserUseCase
       password: command.dto.password,
     });
 
-    // Создаем пользователя
-    const user = await this.usersRepository.createUser({
-      login: command.dto.login,
-      email: command.dto.email,
-      passwordHash,
-    });
-
-    // Создаем email confirmation с автогенерацией кода
+    // Получаем expiration для EmailConfirmation
     const expirationMinutes = this.configService.get<number>(
       'EMAIL_CONFIRMATION_EXPIRATION',
     );
@@ -77,16 +68,27 @@ export class RegistrationUserUseCase
       });
     }
 
-    const emailConfirmation =
-      await this.emailConfirmationRepository.createEmailConfirmation(
-        user.id,
-        expirationMinutes,
-      );
+    // Создаем пользователя с EmailConfirmation каскадно (одной командой сохранятся обе сущности)
+    const user = await this.usersRepository.createUser({
+      login: command.dto.login,
+      email: command.dto.email,
+      passwordHash,
+      emailConfirmationExpirationMinutes: expirationMinutes,
+    });
+
+    // EmailConfirmation создался каскадно и доступен через user.emailConfirmation
+    if (!user.emailConfirmation) {
+      throw new DomainException({
+        code: DomainExceptionCode.InternalServerError,
+        message: 'EmailConfirmation was not created',
+        field: 'User',
+      });
+    }
 
     // Отправляем email с сгенерированным кодом
     await this.emailService.sendConfirmationEmail(
       user.email,
-      emailConfirmation.confirmationCode,
+      user.emailConfirmation.confirmationCode,
     );
   }
 }

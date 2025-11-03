@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UserViewDto } from '../../api/view-dto/users.view-dto';
 import { UsersRepository } from '../../infrastructure/user.repository';
 import { BcryptService } from '../../../access-control/application/helping-application/bcrypt.service';
+import { ConfigService } from '@nestjs/config';
 import { DomainException } from '../../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../../core/exceptions/domain-exception-codes';
 import { Extension } from '../../../../../core/exceptions/domain-exceptions';
@@ -18,6 +19,7 @@ export class CreateUserUseCase
   constructor(
     private usersRepository: UsersRepository,
     private bcryptService: BcryptService,
+    private configService: ConfigService,
   ) {}
 
   async execute(command: CreateUserCommand): Promise<UserViewDto> {
@@ -52,11 +54,25 @@ export class CreateUserUseCase
       password: command.dto.password,
     });
 
-    // Создаем пользователя напрямую
+    // Получаем expiration для EmailConfirmation (EmailConfirmation всегда создается)
+    const expirationMinutes = this.configService.get<number>(
+      'EMAIL_CONFIRMATION_EXPIRATION',
+    );
+
+    if (!expirationMinutes) {
+      throw new DomainException({
+        code: DomainExceptionCode.InternalServerError,
+        message: 'EMAIL_CONFIRMATION_EXPIRATION is not set',
+        field: 'ConfigValue',
+      });
+    }
+
+    // Создаем пользователя с EmailConfirmation каскадно (одной командой сохранятся обе сущности)
     const user = await this.usersRepository.createUser({
       login: command.dto.login,
       email: command.dto.email,
       passwordHash,
+      emailConfirmationExpirationMinutes: expirationMinutes,
     });
 
     // Для админского создания сразу помечаем email как подтвержденный

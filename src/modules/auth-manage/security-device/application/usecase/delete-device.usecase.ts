@@ -1,6 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { SecurityDeviceRepository } from '../../infrastructure/security-device.repository';
-import { FindByUserAndDeviceDto } from '../../infrastructure/dto/session-repo.dto';
 import { DomainException } from '../../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../../core/exceptions/domain-exception-codes';
 
@@ -41,8 +40,7 @@ export class DeleteDeviceUseCase
       });
     }
 
-    // 3. Отзываем сессию
-    const revokeDto: FindByUserAndDeviceDto = { userId, deviceId };
-    await this.securityDeviceRepository.revokeSessionByUserAndDevice(revokeDto);
+    // 3. Отзываем сессию через умную сущность
+    await this.securityDeviceRepository.revokeSession(session);
   }
 }

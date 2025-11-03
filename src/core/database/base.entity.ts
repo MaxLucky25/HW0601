@@ -1,18 +1,10 @@
-import {
-  PrimaryColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 /**
  * Базовый класс для всех Entity в проекте
- * Содержит общие поля: id, createdAt, updatedAt, deletedAt (soft delete)
+ * Содержит общие поля: createdAt, updatedAt, deletedAt (soft delete)
  */
 export abstract class BaseEntity {
-  @PrimaryColumn('uuid')
-  id: string;
-
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp',

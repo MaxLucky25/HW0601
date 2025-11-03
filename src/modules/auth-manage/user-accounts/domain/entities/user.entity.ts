@@ -1,10 +1,14 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, OneToOne, PrimaryColumn } from 'typeorm';
 import { BaseEntity } from '../../../../../core/database/base.entity';
 import { CreateUserDomainDto } from '../dto/create-user.domain.dto';
 import { randomUUID } from 'crypto';
+import { EmailConfirmation } from './email-confirmation.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
+  @PrimaryColumn('uuid')
+  id: string;
+
   @Column()
   login: string;
 
@@ -16,6 +20,15 @@ export class User extends BaseEntity {
 
   @Column({ name: 'is_email_confirmed', default: false })
   isEmailConfirmed: boolean;
+
+  @OneToOne(
+    () => EmailConfirmation,
+    (emailConfirmation) => emailConfirmation.user,
+    {
+      cascade: true, // Каскадное создание/обновление EmailConfirmation при сохранении User
+    },
+  )
+  emailConfirmation?: EmailConfirmation;
 
   /**
    * Статический метод для создания нового пользователя
@@ -29,6 +42,12 @@ export class User extends BaseEntity {
     user.isEmailConfirmed = false;
     user.deletedAt = null;
     // createdAt и updatedAt установятся автоматически через @CreateDateColumn и @UpdateDateColumn
+
+    // EmailConfirmation всегда создается каскадно
+    user.emailConfirmation = EmailConfirmation.create(
+      user.id,
+      dto.emailConfirmationExpirationMinutes,
+    );
 
     return user;
   }

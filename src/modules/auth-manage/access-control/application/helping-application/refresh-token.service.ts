@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { DomainException } from '../../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../../core/exceptions/domain-exception-codes';
-import { SessionDocument } from '../../../security-device/domain/session.entity';
+import { Session } from '../../../security-device/domain/session.entity';
 import {
   ResponseWithCookies,
   CookieOptions,
@@ -50,10 +50,7 @@ export class RefreshTokenService {
    * @param session - сессия из БД
    * @param refreshTokenFromCookie - токен из cookie
    */
-  validateRefreshToken(
-    session: SessionDocument,
-    refreshTokenFromCookie: string,
-  ): void {
+  validateRefreshToken(session: Session, refreshTokenFromCookie: string): void {
     if (!refreshTokenFromCookie) {
       throw new DomainException({
         code: DomainExceptionCode.Unauthorized,

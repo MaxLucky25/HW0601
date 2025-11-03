@@ -45,10 +45,8 @@ import { ExtractUserForJwtGuard } from '../../guards/decorators/param/extract-us
 import { ExtractUserForRefreshTokenGuard } from '../../guards/decorators/param/extract-user-for-refresh-token-guard.decorator';
 import { ExtractIp } from '../../guards/decorators/param/extract-ip.decorator';
 import { ExtractUserAgent } from '../../guards/decorators/param/extract-user-agent.decorator';
-import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
-@SkipThrottle()
 @Controller('auth')
 export class AuthController {
   constructor(

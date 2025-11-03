@@ -26,7 +26,6 @@ import { GetPostByIdQuery } from '../application/query-usecases/get-post-by-id.u
 import { GetAllPostsQuery } from '../application/query-usecases/get-all-posts.usecase';
 import { OptionalJwtAuthGuard } from '../../../auth-manage/guards/bearer/optional-jwt-auth-guard';
 import { ExtractUserIdForJwtOptionalGuard } from '../../../auth-manage/guards/decorators/param/extract-user-id-for-jwt-optional-guard.decorator';
-import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../../auth-manage/guards/bearer/jwt-auth-guard';
 import { LikePostInputDto } from './input-dto/likesPost/like-post.input.dto';
 import { ExtractUserForJwtGuard } from '../../../auth-manage/guards/decorators/param/extract-user-for-jwt-guard.decorator';
@@ -39,7 +38,6 @@ import { CreateCommentInputDto } from '../../comments/api/input-dto/create-comme
 import { CreateCommentCommand } from '../../comments/application/usecases/create-comment.usecase';
 
 @ApiTags('posts')
-@SkipThrottle()
 @Controller('posts')
 export class PostsController {
   constructor(

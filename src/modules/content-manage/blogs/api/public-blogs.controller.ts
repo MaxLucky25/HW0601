@@ -17,10 +17,8 @@ import { GetBlogByIdQuery } from '../application/query-usecase/get-blog.usecase'
 import { GetAllBlogsQuery } from '../application/query-usecase/get-all-blogs.usecase';
 import { OptionalJwtAuthGuard } from '../../../auth-manage/guards/bearer/optional-jwt-auth-guard';
 import { ExtractUserIdForJwtOptionalGuard } from '../../../auth-manage/guards/decorators/param/extract-user-id-for-jwt-optional-guard.decorator';
-import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('blogs')
-@SkipThrottle()
 @Controller('blogs')
 export class PublicBlogsController {
   constructor(private queryBus: QueryBus) {}

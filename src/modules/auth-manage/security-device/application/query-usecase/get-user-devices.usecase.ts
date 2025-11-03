@@ -17,12 +17,10 @@ export class GetUserDevicesQueryUseCase
     const { userId } = query;
 
     const findDto: FindByUserIdDto = { userId };
+    // findByUserId уже возвращает только активные сессии (isRevoked: false, expiresAt: MoreThan)
     const sessions = await this.securityDeviceRepository.findByUserId(findDto);
 
-    // Фильтруем только активные сессии
-    const activeSessions = sessions.filter((session) => session.isActive());
-
     // Преобразуем в DeviceViewDto
-    return activeSessions.map((session) => DeviceViewDto.mapToView(session));
+    return sessions.map((session) => DeviceViewDto.mapToView(session));
   }
 }

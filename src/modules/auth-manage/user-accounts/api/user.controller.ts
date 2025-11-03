@@ -32,10 +32,8 @@ import { GetAllUsersQuery } from '../application/query-usecase/get-all-users.use
 import { CreateUserCommand } from '../application/usecase/create-user.usecase';
 import { UpdateUserCommand } from '../application/usecase/update-user.usecase';
 import { DeleteUserCommand } from '../application/usecase/delete-user.usecase';
-import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('users')
-@SkipThrottle()
 @ApiBasicAuth()
 @UseGuards(BasicAuthGuard)
 @Controller('sa/users')

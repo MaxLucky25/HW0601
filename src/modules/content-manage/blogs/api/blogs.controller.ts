@@ -41,10 +41,8 @@ import { GetAllBlogsQuery } from '../application/query-usecase/get-all-blogs.use
 import { BasicAuthGuard } from '../../../auth-manage/guards/basic/basic-auth.guard';
 import { OptionalJwtAuthGuard } from '../../../auth-manage/guards/bearer/optional-jwt-auth-guard';
 import { ExtractUserIdForJwtOptionalGuard } from '../../../auth-manage/guards/decorators/param/extract-user-id-for-jwt-optional-guard.decorator';
-import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('sa/blogs')
-@SkipThrottle()
 @Controller('sa/blogs')
 export class BlogsController {
   constructor(

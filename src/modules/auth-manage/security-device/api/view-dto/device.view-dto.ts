@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SessionDocument } from '../../domain/session.entity';
+import { Session } from '../../domain/session.entity';
 
 export class DeviceViewDto {
   @ApiProperty({
@@ -27,7 +27,7 @@ export class DeviceViewDto {
   })
   lastActiveDate: string;
 
-  static mapToView(session: SessionDocument): DeviceViewDto {
+  static mapToView(session: Session): DeviceViewDto {
     return {
       deviceId: session.deviceId,
       title: this.parseUserAgent(session.userAgent),

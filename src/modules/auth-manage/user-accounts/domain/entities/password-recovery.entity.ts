@@ -2,7 +2,7 @@ import {
   Entity,
   Column,
   PrimaryColumn,
-  ManyToOne,
+  OneToOne,
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
@@ -16,7 +16,7 @@ export class PasswordRecovery {
   @PrimaryColumn({ name: 'user_id', type: 'uuid' })
   userId: string;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
