@@ -3,7 +3,6 @@ import {
   Column,
   PrimaryColumn,
   CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
@@ -41,12 +40,6 @@ export class Session {
   })
   createdAt: Date;
 
-  @UpdateDateColumn({
-    name: 'updated_at',
-    type: 'timestamp',
-  })
-  updatedAt: Date;
-
   @Column({ name: 'last_active_date', type: 'timestamp' })
   lastActiveDate: Date;
 
@@ -80,7 +73,6 @@ export class Session {
    */
   updateLastActiveDate(): void {
     this.lastActiveDate = new Date();
-    // updatedAt обновится автоматически через @UpdateDateColumn
   }
 
   /**
@@ -88,7 +80,6 @@ export class Session {
    */
   updateToken(newToken: string): void {
     this.token = newToken;
-    // updatedAt обновится автоматически через @UpdateDateColumn
   }
 
   /**
@@ -96,7 +87,6 @@ export class Session {
    */
   updateExpiresAt(expiresIn: number): void {
     this.expiresAt = new Date(Date.now() + expiresIn);
-    // updatedAt обновится автоматически через @UpdateDateColumn
   }
 
   /**
@@ -104,7 +94,6 @@ export class Session {
    */
   revoke(): void {
     this.isRevoked = true;
-    // updatedAt обновится автоматически через @UpdateDateColumn
   }
 
   /**
