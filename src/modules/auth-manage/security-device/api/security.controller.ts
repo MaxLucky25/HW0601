@@ -16,8 +16,10 @@ import { DeviceViewDto } from './view-dto/device.view-dto';
 import { GetUserDevicesQuery } from '../application/query-usecase/get-user-devices.usecase';
 import { DeleteDeviceCommand } from '../application/usecase/delete-device.usecase';
 import { DeleteAllDevicesCommand } from '../application/usecase/delete-all-devices.usecase';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('security')
+@SkipThrottle()
 @UseGuards(RefreshTokenAuthGuard)
 @Controller('security')
 export class SecurityController {
